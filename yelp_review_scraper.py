@@ -14,6 +14,7 @@ from datetime import timedelta, datetime
 
 import pandas as pd
 from selenium import webdriver
+from selenium_stealth import stealth
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -612,7 +613,7 @@ def review_scraper(driver, index, res):
     previous_sleep_time = random_sleep
 
     start = timer()
-    logger.info('Index: {}. Yelp ID: {}.'.format(index, yelpid))
+    logger.info('Index: {}. Yelp ID: {}'.format(index, yelpid))
     navigation_elements = driver.find_elements(By.XPATH, './/div[@aria-label="Pagination navigation"]')
     total_page = 0
     if len(navigation_elements) > 0:
@@ -887,7 +888,14 @@ def main(args, obj):
     class_names, xpaths = utils.load_class_name_and_xpath('keys_for_scraping.ini')
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-
+    stealth(driver,
+            languages=["en-US", "en"],
+            vendor="Google Inc.",
+            platform="Win32",
+            webgl_vendor="Intel Inc.",
+            renderer="Intel Iris OpenGL Engine",
+            fix_hairline=True,
+            )
     # Load restaurant list file.
     if args.aws_mode:
         yelp_target_df = pd.read_csv(io.BytesIO(obj['Body'].read()))
