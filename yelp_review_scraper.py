@@ -1024,7 +1024,7 @@ def main(args, obj):
         if args.aws_mode:
             with io.StringIO() as csv_buffer:
                 results.to_csv(csv_buffer, index=False)
-                response = s3.put_object(Bucket=bucket_name, Key=file_name, Body=csv_buffer.getvalue())
+                response = s3.put_object(Bucket=args.bucket_name, Key=file_name, Body=csv_buffer.getvalue())
                 status = response.get("ResponseMetadata", {}).get("HTTPStatusCode")
                 if status == 200:
                     logger.info(
