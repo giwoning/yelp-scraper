@@ -47,6 +47,7 @@ parser.add_argument('--target_list_name', default='User_List', type=str)
 
 # AWS Options
 parser.add_argument('--aws_mode', default=0, type=int)
+parser.add_argument('--bucket_name', default='', type=str)
 
 # Chrome Option
 parser.add_argument('--open_chrome', default=0, type=int)
@@ -1079,25 +1080,17 @@ if __name__ == '__main__':
     # file existence check
     obj = None
     if args.aws_mode:
-        if not os.path.exists('aws_key.ini'):
-            print('aws_key.ini cannot be found. The program will be terminated.')
-            exit()
-
-        else:
-            AWSAccessKeyID, AWSSecretKey, region, bucket_name = utils.load_aws_keys('aws_key.ini')
             prefix = args.target_list_name + '.csv'
             try:
-                s3 = boto3.client('s3', aws_access_key_id=AWSAccessKeyID, aws_secret_access_key=AWSSecretKey,
-                              region_name=region)
+                s3 = boto3.client('s3')
             except:
-                print('Cannot access your AWS S3 service. Check access Key ID, secret Key, and region. The program will'
-                      ' be terminated.')
+                print('Cannot access your AWS S3 service. Check your IAM role.')
                 exit()
             else:
                 try:
-                    obj = s3.get_object(Bucket=bucket_name, Key=prefix)
+                    obj = s3.get_object(Bucket=args.bucket_name, Key=prefix)
                 except:
-                    print(args.target_list_name + '.csv cannot be found. The program will be terminated.')
+                    print('Your S3 bucket name is not corret or ' + args.target_list_name + '.csv cannot be found. The program will be terminated.')
                     exit()
     else:
         if not os.path.exists(args.target_list_name + '.csv'):
