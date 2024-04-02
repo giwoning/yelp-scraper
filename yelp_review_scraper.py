@@ -625,12 +625,13 @@ def review_scraper(driver, index, res, list_of_page=[]):
     if len(list_of_page) == 0:
         if total_page > 1:
             list_of_page = ['?start=' + str(i * 10) for i in random.sample(range(1, total_page), total_page - 1)]
+    loaded_page_num = len(list_of_page)
     total_review_num = 0
     page = 0
     while (True):
         page = page + 1
         retried = False
-        logger.info('Current Index: {}, Page: {} / {}'.format(str(index), str(page), str(len(list_of_page))))
+        logger.info('Current Index: {}, Page: {} / {}'.format(str(index), str(page), str(loaded_page_num)))
         if page > 1:
             current_page = list_of_page.pop()
             driver.get(yelp_url + current_page)
