@@ -28,14 +28,19 @@ def load_aws_keys(_path):
 
     return aws_info['aws_access_key'], aws_info['aws_secret_key'], aws_info['aws_region'], aws_info['aws_bucket_name']
 
-def load_specific_mode_file(_path):
+def load_specific_mode_file(_path, page=False):
     iset = set()
     with open(_path, 'r') as f:
         for line in f:
             line = line.strip().split(',')
             if '' in line:
                 line.remove('')
-            iset.update([int(index) for index in line])
+            if page:
+                iset.update([index.strip() for index in line])
+            else:
+                iset.update([int(index) for index in line])
+    if page:
+        return list(iset)
     return iset
 
 def check_index_list(ilist, max_index):

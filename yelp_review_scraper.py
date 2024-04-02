@@ -630,7 +630,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
     while (True):
         page = page + 1
         retried = False
-        logger.info('Current Index: ' + str(index) + ', Page: ' + str(page))
+        logger.info('Current Index: {}, Page: {} / {}'.format(str(index), str(page), str(len(list_of_page))))
         if page > 1:
             current_page = list_of_page.pop()
             driver.get(yelp_url + current_page)
@@ -885,12 +885,16 @@ def main(args, obj):
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('log-level=3')
+    chrome_options.add_argument('log-level=3')
     chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
     class_names, xpaths = utils.load_class_name_and_xpath('keys_for_scraping.ini')
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    if platform.system() == 'Windows':
+        driver = webdriver.Chrome(options=chrome_options)
+    else:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
     stealth(driver,
             languages=["en-US", "en"],
             vendor="Google Inc.",
@@ -928,7 +932,7 @@ def main(args, obj):
 
     elif args.page_specific_mode:
         index_set = [args.index_for_ps_mode]
-        total_list_of_page = utils.load_specific_mode_file(str(args.index_for_ps_mode) + '_page_list.txt')
+        total_list_of_page = utils.load_specific_mode_file(str(args.index_for_ps_mode) + '_page_list.txt', True)
 
         if not utils.check_page_list(total_list_of_page):
             logger.error('Check your ' + str(args.index_for_ps_mode) + '_page_list.text. The program will be terminated.')
@@ -943,7 +947,7 @@ def main(args, obj):
             exit()
 
         unit = int(len(total_list_of_page) / 10)
-        start_idx = (args.part_for_ps_mode) * unit + (args.part_for_ps_mode > 1)
+        start_idx = (args.part_for_ps_mode - 1) * (unit) + (args.part_for_ps_mode > 1)
         end_idx = args.part_for_ps_mode * unit if args.part_for_ps_mode != 10 else len(total_list_of_page)
         list_of_page = total_list_of_page[start_idx:end_idx + 1]
         logger.info('Page specific mode is successfully activated.')
