@@ -28,7 +28,7 @@ def load_aws_keys(_path):
 
     return aws_info['aws_access_key'], aws_info['aws_secret_key'], aws_info['aws_region'], aws_info['aws_bucket_name']
 
-def load_index_set(_path):
+def load_specific_mode_file(_path):
     iset = set()
     with open(_path, 'r') as f:
         for line in f:
@@ -42,6 +42,13 @@ def check_index_list(ilist, max_index):
     pass_ = True
     for index in ilist:
         if index < 0 or index > max_index:
+            pass_ = False
+    return pass_
+
+def check_page_list(ilist):
+    pass_ = True
+    for page in ilist:
+        if page.find('?start=') == -1:
             pass_ = False
     return pass_
 

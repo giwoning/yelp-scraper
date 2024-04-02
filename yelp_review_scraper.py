@@ -37,7 +37,10 @@ parser.add_argument('--wait_time_for_new_index', default=10, type=int)
 parser.add_argument('--wait_time_for_establishment', default=10, type=int)
 parser.add_argument('--wait_time_for_next_page_lb', default=10, type=int)
 parser.add_argument('--wait_time_for_next_page_ub', default=15, type=int)
-parser.add_argument('--index_specified_mode', default=False, type=bool)
+parser.add_argument('--index_specified_mode', default=0, type=int)
+parser.add_argument('--page_specific_mode', default=0, type=int)
+parser.add_argument('--index_for_ps_mode', default=-1, type=int)
+parser.add_argument('--part_for_ps_mode', default=0, type=int)
 
 # Log Options
 parser.add_argument('--verbose', default=True, type=bool)
@@ -564,7 +567,7 @@ def profile_scraper(driver, index, reviewer):
                     dont_tell_anyone_else_but, most_recent_discovery, current_crush]
     profiles[index] = this_profile
 
-def review_scraper(driver, index, res):
+def review_scraper(driver, index, res, list_of_page=[]):
     previous_sleep_time = -1
     previous_sleep_time_within_page = -1
 
@@ -619,9 +622,9 @@ def review_scraper(driver, index, res):
     if len(navigation_elements) > 0:
         total_page = int(navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[1])
 
-    list_of_page = []
-    if total_page > 1:
-        list_of_page = ['?start=' + str(i * 10) for i in random.sample(range(1, total_page), total_page - 1)]
+    if len(list_of_page) == 0:
+        if total_page > 1:
+            list_of_page = ['?start=' + str(i * 10) for i in random.sample(range(1, total_page), total_page - 1)]
     total_review_num = 0
     page = 0
     while (True):
@@ -914,15 +917,37 @@ def main(args, obj):
             exit()
         object_name = "restaurant"
 
-    if args.verbose:
-        logger.info('The target list file has been successfully loaded.')
-        logger.info('The total number of ' + object_name + 's is ' + str(len(yelp_target_df)) + '.')
+
 
     if args.index_specified_mode:
-        index_set = sorted(utils.load_index_set('index_set.txt'))
+        index_set = sorted(utils.load_specific_mode_file('index_set.txt'))
+        list_of_page = []
         if not utils.check_index_list(index_set, len(yelp_target_df) - 1):
             logger.error('Check your index_set.txt. It may contains invalid indices. The program will be terminated.')
             exit()
+
+    elif args.page_specific_mode:
+        index_set = [args.index_for_ps_mode]
+        total_list_of_page = utils.load_specific_mode_file(str(args.index_for_ps_mode) + '_page_list.txt')
+
+        if not utils.check_page_list(total_list_of_page):
+            logger.error('Check your ' + str(args.index_for_ps_mode) + '_page_list.text. The program will be terminated.')
+            exit()
+
+        if not isinstance(args.part_for_ps_mode, int):
+            logger.error('You must the integer number for part argument. The program will be terminated.')
+            exit()
+
+        if not (args.part_for_ps_mode >= 1 and args.part_for_ps_mode <= 10):
+            logger.error('Part argument is out of ragne. It must be between 1 to 10, inclusive. The program will be terminated.')
+            exit()
+
+        unit = int(len(total_list_of_page) / 10)
+        start_idx = (args.part_for_ps_mode) * unit + (args.part_for_ps_mode > 1)
+        end_idx = args.part_for_ps_mode * unit if args.part_for_ps_mode != 10 else len(total_list_of_page)
+        list_of_page = total_list_of_page[start_idx:end_idx + 1]
+        logger.info('Page specific mode is successfully activated.')
+        logger.info('Target index: {}, Start page index: {}, End page index: {}'.format(args.index_for_ps_mode, start_idx, end_idx))
 
     else:
         # Check max index
@@ -935,6 +960,11 @@ def main(args, obj):
             else:
                 max_index = args.max_index
         index_set = list(range(args.min_index, max_index + 1, 1))
+        list_of_page = []
+
+    if args.verbose:
+        logger.info('The target list file has been successfully loaded.')
+        logger.info('The total number of ' + object_name + 's is ' + str(len(yelp_target_df)) + '.')
 
     target_obj_num = len(index_set)
     yelp_target_df = yelp_target_df.loc[index_set]
@@ -952,7 +982,7 @@ def main(args, obj):
                 if args.collected_object == 'profile':
                     profile_scraper(driver, index, object)
                 elif args.collected_object == 'review':
-                    review_scraper(driver, index, object)
+                    review_scraper(driver, index, object, list_of_page)
                 else:
                     res_scraper(driver, index, object)
                 success_num += 1
@@ -1010,6 +1040,8 @@ def main(args, obj):
                     file_name = 'yelp_review_index_specified (' + str(success_num) + ' of ' + str(target_obj_num) + ' reviews).csv'
                 else:
                     file_name = 'yelp_res_info_index_specified (' + str(success_num) + ' of ' + str(target_obj_num) + ' reviews).csv'
+            elif args.page_specific_mode:
+                file_name = 'yelp_review_page_specified (from ' + str(start_idx) + ' to ' + str(end_idx) + ' of ' + str(args.index_for_ps_mode) + ' reviews).csv'
             else:
                 if fail_num == 0:
                     if args.collected_object == 'profile':
@@ -1052,7 +1084,7 @@ if __name__ == '__main__':
             print('index_set.txt cannot be found. The program will be terminated.')
             exit()
 
-        if len(utils.load_index_set('index_set.txt')) == 0:
+        if len(utils.load_specific_mode_filet('index_set.txt')) == 0:
             print('index_set.txt is empty or invalid. The program will be terminated.')
             exit()
 
