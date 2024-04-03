@@ -951,9 +951,9 @@ def main(args, obj):
             logger.error('Part argument is out of ragne. It must be between 1 to 10, inclusive. The program will be terminated.')
             exit()
 
-        unit = int(len(total_list_of_page) / 10)
-        start_idx = (args.part_for_ps_mode - 1) * (unit) + (args.part_for_ps_mode > 1)
-        end_idx = args.part_for_ps_mode * unit if args.part_for_ps_mode != 10 else len(total_list_of_page)
+        unit = len(total_list_of_page) / 10
+        start_idx = int((args.part_for_ps_mode - 1) * (unit)) + (args.part_for_ps_mode > 1)
+        end_idx = int(args.part_for_ps_mode * unit) if args.part_for_ps_mode != 10 else len(total_list_of_page)
         list_of_page = total_list_of_page[start_idx:end_idx + 1]
         logger.info('Page specific mode is successfully activated.')
         logger.info('Target index: {}, Start page index: {}, End page index: {}'.format(args.index_for_ps_mode, start_idx, end_idx))
