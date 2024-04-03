@@ -652,11 +652,8 @@ def review_scraper(driver, index, res, list_of_page=[]):
             navigation_elements = driver.find_elements(By.XPATH, './/div[@aria-label="Pagination navigation"]')
             current_page_num = int(navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[0])
             this_total_page_num = int(
-                navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[1])
-            print(this_total_page_num)
-            print(current_page_num)
-            if current_page_num > total_page:
-                wrong = True
+                navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[1]) 
+            if current_page_num > this_total_page_num:
                 logger.info('This page number is larger than total page number. Continue to next page...')
                 continue
     
