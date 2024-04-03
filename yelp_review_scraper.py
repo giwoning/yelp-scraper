@@ -645,7 +645,13 @@ def review_scraper(driver, index, res, list_of_page=[]):
                                                           args.wait_time_for_next_page_ub)
             time.sleep(random_sleep_within_page)
             previous_sleep_time_within_page = random_sleep_within_page
-
+            navigation_elements = driver.find_elements(By.XPATH, './/div[@aria-label="Pagination navigation"]')
+            current_page_num = int(navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[0])
+            if current_page_num > total_page:
+                wrong = True
+                logger.info('This page number is larger than total page number. Continue to next page...')
+                continue
+    
         review_elements_f = driver.find_elements(By.XPATH, './/section[@aria-label="Recommended Reviews"]')
         if len(review_elements_f) == 0:
             logger.info('Oops.. Something goes wrong.. Reloading the page...')
@@ -669,14 +675,12 @@ def review_scraper(driver, index, res, list_of_page=[]):
                 num_loaded_reviews = len(review_elements)
                 if num_loaded_reviews == 0:
                     logger.info('No reviews... Moving to next...')
-                    logger.info('Page Num: {}'.format(current_page))
                     break
         else:
             review_elements = review_elements_f[0].find_elements(By.XPATH, './div[2]/ul/li')
             num_loaded_reviews = len(review_elements)
             if num_loaded_reviews == 0:
-                logger.info('No reviews... Moving to next...')
-                logger.info('Page Num: {}'.format(current_page))
+                lgger.info('No reviews... Moving to next...')o
                 break
 
         total_review_num = total_review_num + num_loaded_reviews
