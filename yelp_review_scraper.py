@@ -635,9 +635,13 @@ def review_scraper(driver, index, res, list_of_page=[]):
     while (True):
         page = page + 1
         retried = False
-        logger.info('Current Index: {}, Page: {} / {}, Acutal Page: {}'.format(str(index), str(page), str(loaded_page_num), list_of_page[-1]))
-        if page > 1:
+        if page == 1:
+            logger.info('Current Index: {}, Page: 1 / {}, Acutal Page: Home'.format(str(index), str(loaded_page_num)))
+        else:
             current_page = list_of_page.pop()
+            logger.info(
+                'Current Index: {}, Page: {} / {}, Acutal Page: {}'.format(str(index), str(page), str(loaded_page_num),
+                                                                           current_page))
             driver.get(yelp_url + current_page)
             random_sleep_within_page = random.randint(args.wait_time_for_next_page_lb, args.wait_time_for_next_page_ub)
             while random_sleep_within_page == previous_sleep_time_within_page:
@@ -649,6 +653,8 @@ def review_scraper(driver, index, res, list_of_page=[]):
             current_page_num = int(navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[0])
             this_total_page_num = int(
                 navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[1])
+            print(this_total_page_num)
+            print(current_page_num)
             if current_page_num > total_page:
                 wrong = True
                 logger.info('This page number is larger than total page number. Continue to next page...')
