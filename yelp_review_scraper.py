@@ -630,7 +630,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
         if total_page > 1:
             list_of_page = ['?start=' + str(i * 10) for i in random.sample(range(1, total_page), total_page - 1)]
     loaded_page_num = len(list_of_page)
-    if args.page_specific_mode == 0 or (args.page_specific_mode == 1 and part_for_ps_mode == 1):
+    if args.page_specific_mode == 0 or (args.page_specific_mode == 1 and args.part_for_ps_mode == 1):
         loaded_page_num = loaded_page_num + 1
     total_review_num = 0
     page = 0
