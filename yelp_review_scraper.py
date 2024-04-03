@@ -650,7 +650,9 @@ def review_scraper(driver, index, res, list_of_page=[]):
             time.sleep(random_sleep_within_page)
             previous_sleep_time_within_page = random_sleep_within_page
 
-            navigation_elements = driver.find_elements(By.XPATH, './/div[@aria-label="Pagination navigation"]')
+
+            navigation_elements = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(By.XPATH, './/div[@aria-label="Pagination navigation"]'))
             current_page_num = int(navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[0])
             this_total_page_num = int(
                 navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[1]) 
@@ -911,7 +913,6 @@ def main(args, obj):
         driver = webdriver.Chrome(options=chrome_options)
     else:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    driver.implicitly_wait(10)
     stealth(driver,
             languages=["en-US", "en"],
             vendor="Google Inc.",
