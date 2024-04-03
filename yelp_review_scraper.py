@@ -680,7 +680,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
             review_elements = review_elements_f[0].find_elements(By.XPATH, './div[2]/ul/li')
             num_loaded_reviews = len(review_elements)
             if num_loaded_reviews == 0:
-                lgger.info('No reviews... Moving to next...')
+                logger.info('No reviews... Moving to next...')
                 break
 
         total_review_num = total_review_num + num_loaded_reviews
