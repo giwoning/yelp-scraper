@@ -754,7 +754,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
                 user_num_posted_photo = 0
 
             user_num_check_ins_element = review_element.find_elements(By.XPATH,
-                                                                      './/span[contains(text(), "check-ins")]')
+                                                                      './/span[text()="check-ins"]')
             if len(user_num_check_ins_element) > 0:
                 user_num_check_ins = int(re.sub(r'[^0-9]', '', user_num_check_ins_element[0].text))
             else:
