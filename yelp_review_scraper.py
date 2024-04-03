@@ -626,7 +626,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
     if len(navigation_elements) > 0:
         total_page = int(navigation_elements[0].find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[1])
 
-    if len(list_of_page) == 0:
+    if args.page_specific_mode == 0:
         if total_page > 1:
             list_of_page = ['?start=' + str(i * 10) for i in random.sample(range(1, total_page), total_page - 1)]
     loaded_page_num = len(list_of_page) + 1
