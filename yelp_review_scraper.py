@@ -99,7 +99,7 @@ def profile_scraper(driver, index, reviewer, info_dict):
     url = 'https://www.yelp.com/user_details?userid=' + reviewer['user_id']
     driver.get(url)
     time.sleep(args.wait_time_for_new_index)
-    error_404 = len(driver.find_elements(By.XPATH, '//h1[contains(text(), \"We’re sorry. Something went wrong on this page.\"')) > 0
+    error_404 = len(driver.find_elements(By.XPATH, './/h1[contains(text(), \"We’re sorry. Something went wrong on this page.\")]')) > 0
     if error_404:
         logger.error('This user page has been removed.')
         invalid_object_list.append(index)
@@ -118,12 +118,14 @@ def profile_scraper(driver, index, reviewer, info_dict):
     pi_dict['user_photo_num'] = 0
     pi_dict['user_elite_year'] = 0
     pi_dict['user_tagline'] = ''
-    ## Profile Photos
+
+    ## Profile Info
+    profile_header_element = driver.find_element(By.XPATH, './/div[@data-testid="profile-header-decoration"]/following-sibling::div[1]')
+
+    # 1. Photo
     profile_photo_url_list = []
-    # photo_href_link = "/user_photos?userid=" + user['user_id']
-    photo_href_link = "/user_photos?userid=" + userid
-    photo_elements = driver.find_elements(By.XPATH, ".//a[contains(@href, \"" + photo_href_link + "\")]")
-    for photo_element in photo_elements:
+    user_photo_elements = profile_header_element.find_elements(By.XPATH, "./div[1]/a")
+    for photo_element in user_photo_elements:
         photo_url = photo_element.find_element(By.XPATH, './img').get_attribute('src')
         # No photos
         if photo_url.find('default_user_avatar') != -1:
@@ -133,47 +135,40 @@ def profile_scraper(driver, index, reviewer, info_dict):
 
     pi_dict['user_photo_url'] = '' if len(profile_photo_url_list) == 0 else ', '.join(profile_photo_url_list)
 
-    ## Profile Info
-    # profile-header-decoration
-    profile_header_element = driver.find_element(By.XPATH, './/div[@data-testid="profile-header-decoration"]')
-    profile_info_elements = profile_header_element.find_elements(By.XPATH, './following-sibling::div[1]/div')
+    # 2. Name
+    user_name_element = profile_header_element.find_elements(By.XPATH, './div[2]/a/h2')
+    if len(user_name_element) > 0:
+        pi_dict['user_name'] = user_name_element[0].text
 
-    for i, profile_info_element in enumerate(profile_info_elements):
-        # i = 0: Profile Photo
-        if i == 0:
-            continue
-        # i = 1: User Name
-        if i == 1:
-            user_name_element = profile_info_element.find_elements(By.XPATH, './a/h2')
-            if len(user_name_element) > 0:
-                pi_dict['user_name'] = user_name_element[0].text
-        if i == 2:
-            user_loc_element = profile_info_element.find_elements(By.XPATH, './p')
-            if len(user_loc_element) > 0:
-                pi_dict['user_loc'] = user_loc_element[0].text
-        if i == 3:
-            user_stat_elements = profile_info_element.find_elements(By.XPATH, './div/div/div')
-            if len(user_stat_elements) > 0:
-                for i, stat_element in enumerate(user_stat_elements):
-                    value = stat_element.find_element(By.XPATH, './span[2]/span').text
-                    if i == 0:
-                        pi_dict['user_friend_num'] = value
-                    elif i == 1:
-                        pi_dict['user_review_num'] = value
-                    else:
-                        pi_dict['user_photo_num'] = value
-        if i == 4:
-            elite_element = profile_info_element.find_elements(By.XPATH,
-                                                               ".//a[@href=\"/user_details_years_elite?userid=" + userid + "\"]")
-            if len(elite_element) > 0:
-                pi_dict['user_elite_year'] = elite_element[0].find_element(By.XPATH, './span').text.split(' ')[1]
-            else:
-                pi_dict['user_tagline'] = profile_info_element.find_element(By.XPATH, './p').text
+    # 3. Location
+    user_loc_element = profile_header_element.find_elements(By.XPATH, './div[3]/p')
+    if len(user_loc_element) > 0:
+        pi_dict['user_loc'] = user_loc_element[0].text
 
-        if i == 5:
-            user_short_desc_element = profile_info_element.find_elements(By.XPATH, './p')
-            if len(user_short_desc_element) > 0:
-                pi_dict['user_tagline'] = user_short_desc_element[0].text
+    # 4. Passport Stat
+    user_stat_elements = profile_header_element.find_elements(By.XPATH, './/div[contains(@class, \"user-passport-stats\")]')
+    if len(user_stat_elements) > 0:
+            user_friend_element = user_stat_elements[0].find_elements(By.XPATH, './div[@aria-label=\"Friends\"]')
+            if len(user_friend_element) > 0:
+                pi_dict['user_friend_num'] = int(user_friend_element[0].find_element(By.XPATH, './span[2]/span').text)
+
+            user_review_element = user_stat_elements[0].find_elements(By.XPATH, './div[@aria-label=\"Reviews\"]')
+            if len(user_review_element) > 0:
+                pi_dict['user_review_num'] = int(user_review_element[0].find_element(By.XPATH, './span[2]/span').text)
+
+            user_photo_element = user_stat_elements[0].find_elements(By.XPATH, './div[@aria-label=\"Photos\"]')
+            if len(user_photo_element) > 0:
+                pi_dict['user_photo_num'] = int(user_photo_element[0].find_element(By.XPATH, './span[2]/span').text)
+
+    elite_element = profile_header_element.find_elements(By.XPATH,
+                                                       ".//a[@href=\"/user_details_years_elite?userid=" + reviewer['user_id'] + "\"]")
+    if len(elite_element) > 0:
+        pi_dict['user_elite_year'] = int(elite_element[0].find_element(By.XPATH, './span').text.split(' ')[1])
+
+    add_friend_element = profile_header_element.find_element(By.XPATH, './/span[text()=\"Add friend\"]')
+    user_tagline_element = add_friend_element.find_elements(By.XPATH, '../../preceding-sibling::div[1]/p')
+    if len(user_tagline_element) > 0:
+        pi_dict['user_tagline'] = user_tagline_element[0].text
 
     # Impact
     ## Review reactions
@@ -223,15 +218,15 @@ def profile_scraper(driver, index, reviewer, info_dict):
 
     ## Compliments
     compliments_dict = {}
+    for id_name in cdt_id_name_list:
+        compliments_dict[id_name] = 0
     child_compliments_elements = driver.find_elements(By.XPATH, './/p[text()="Compliments"]')
     if len(child_compliments_elements) > 0:
-        for id_name in cdt_id_name_list:
-            compliments_dict[id_name] = 0
             this_compliment_element = driver.find_elements(By.XPATH,
                                                            ".//div[@data-testid=\"impact-compliment-" + id_name + "\"]")
             if len(this_compliment_element) > 0:
                 compliments_dict[id_name] = int(this_compliment_element[0].find_element(By.XPATH,
-                                                                                    './div/span[2]/span[2]').text)
+                                                                                        './div/span[2]/span[2]').text)
 
     # Review Distribution
     ## Ratings
@@ -321,6 +316,8 @@ def profile_scraper(driver, index, reviewer, info_dict):
 
     ## More about me
     me_dict = {}
+    for me_info in me_list:
+        me_dict[me_info] = ''
     show_more_text_element = driver.find_elements(By.XPATH, './/p[text()="Show more"]')
     if len(show_more_text_element) > 0:
         button = show_more_text_element[0].find_element(By.XPATH, 'ancestor::button[1]')
@@ -335,7 +332,6 @@ def profile_scraper(driver, index, reviewer, info_dict):
             me_info_elements = me_title_element[0].find_elements(By.XPATH, '../following-sibling::div[1]/div')
         if len(me_info_elements) > 0:
             for me_info in me_list:
-                me_dict[me_info] = ''
                 this_me_info_element = me_info_elements[0].find_elements(By.XPATH, ".//p[text()=\"" + me_info + "\"]")
                 if len(this_me_info_element) > 0:
                     me_dict[me_info] = this_me_info_element[0].find_element(By.XPATH, './following-sibling::p').text
@@ -357,9 +353,9 @@ def profile_scraper(driver, index, reviewer, info_dict):
     most_recent_discovery = me_dict['Most Recent Discovery']
     current_crush = me_dict['Current Crush']
 
-    this_profile = [reviewer['user_id'], pi_dict['user_name'], pi_dict['user_loc'], profile_photo_urls,
+    this_profile = [reviewer['user_id'], pi_dict['user_name'], pi_dict['user_loc'], pi_dict['user_photo_url'],
                     pi_dict['user_friend_num'], pi_dict['user_review_num'], pi_dict['user_photo_num'],
-                    pi_dict['user_elite_year'], pi_dict['user_tag_line'],
+                    pi_dict['user_elite_year'], pi_dict['user_tagline'],
                     rd_dict['s5'], rd_dict['s4'], rd_dict['s3'], rd_dict['s2'], rd_dict['s1'],
                     rr_dict['helpful'], rr_dict['thanks'], rr_dict['love_this'], rr_dict['oh_no'],
                     stat_dict['review_updates'], stat_dict['first_reviews'], stat_dict['followers'],
@@ -461,7 +457,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
             previous_sleep_time_within_page = random_sleep_within_page
 
 
-            navigation_elements = WebDriverWait(driver, 10).until(
+            navigation_elements = WebDriverWait(driver, 30).until(
                 EC.presence_of_element_located((By.XPATH, './/div[@aria-label="Pagination navigation"]')))
             current_page_num = int(navigation_elements.find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[0])
             this_total_page_num = int(
@@ -821,11 +817,11 @@ def main(args, obj):
         try:
             for index, object in yelp_target_df.iterrows():
                 if args.collected_object == 'profile':
-                    profile_scraper(driver, index, object)
+                    profile_scraper(driver, index, object, required_info_dict)
                 elif args.collected_object == 'review':
                     review_scraper(driver, index, object, list_of_page)
                 else:
-                    res_scraper(driver, index, object, required_info_dict)
+                    res_scraper(driver, index, object)
                 success_num += 1
                 index_set.pop(0)
         except:
