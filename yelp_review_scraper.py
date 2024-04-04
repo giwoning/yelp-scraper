@@ -304,267 +304,289 @@ def res_scraper(driver, index, res):
                      photo_num, phone_numbers, addresses, day_and_operating_times, amenities]
     restaurants[index] = this_res_info
 
-def profile_scraper(driver, index, reviewer):
-    logger.info('Current working index: ' + str(index) + '. User ID is ' + reviewer['user_id'] + '.')
+def profile_scraper(driver, index, reviewer, info_dict):
+    logger.info('Current working index: {}, User ID: {}'.format(str(index), reviewer['user_id']))
+
 
     url = 'https://www.yelp.com/user_details?userid=' + reviewer['user_id']
     driver.get(url)
     time.sleep(args.wait_time_for_new_index)
-
-    error_404 = len(driver.find_elements(By.XPATH, '//div[@class="arrange_unit arrange_unit--fill"]/p')) > 0
+    error_404 = len(driver.find_elements(By.XPATH, '//h1[contains(text(), \"We’re sorry. Something went wrong on this page.\"')) > 0
     if error_404:
-        logger.error('This user has been removed.')
+        logger.error('This user page has been removed.')
         invalid_object_list.append(index)
         raise
 
-    profile_photo_urls = []
+    cdt_id_name_list = info_dict['cdt_id_name']
+    me_list = info_dict['about_me']
 
-    photo_info = "yelp.www.init.user_details.initPhotoSlideshow(\".js-photo-slideshow-user-details\", "
-    photo_slide_script = ""
-    script_element = driver.find_elements(By.XPATH, '//*[contains(text(), \'yelp.www.init.user_details.initPhotoSlideshow\')]')
-    if len(script_element) > 0:
-        photo_slide_script = script_element[0].get_attribute('innerHTML')
-
-    # No Photos or Only One Photo
-    if photo_slide_script == "":
-        photo_src = driver.find_elements(By.CLASS_NAME, 'photo-box-img')[0].get_attribute('src')
-        if photo_src.find('user_large_square.png') == -1:
-            profile_photo_urls.append(photo_src)
-    else:
-        start_index = photo_slide_script.find(photo_info)
-        end_index = photo_slide_script.find(")", start_index)
-        photo_list = json.loads(photo_slide_script[start_index + len(photo_info):end_index])
-
-        for elm in photo_list:
-            profile_photo_urls.append(elm['source_url'])
-    profile_photo_urls = ', '.join(profile_photo_urls)
-
-    user_profile_info = driver.find_elements(By.XPATH, '//div[@class="user-profile_info arrange_unit"]')[0]
-    name = ""
-    nickname = ""
-    name_element = user_profile_info.find_elements(By.XPATH, './h1')
-    if len(name_element) > 0:
-        full_name = name_element[0].text
-        if full_name.find("\"") != -1:
-            name = full_name[:full_name.find("\"")] + full_name[full_name.rfind("\"") + 2:]
-            nickname = full_name[full_name.find("\"") + 1:full_name.rfind("\"")]
+    # Profiles
+    pi_dict = {}
+    pi_dict['user_name'] = ''
+    pi_dict['user_loc'] = ''
+    pi_dict['user_photo_url'] = ''
+    pi_dict['user_friend_num'] = 0
+    pi_dict['user_review_num'] = 0
+    pi_dict['user_photo_num'] = 0
+    pi_dict['user_elite_year'] = 0
+    pi_dict['user_tagline'] = ''
+    ## Profile Photos
+    profile_photo_url_list = []
+    # photo_href_link = "/user_photos?userid=" + user['user_id']
+    photo_href_link = "/user_photos?userid=" + userid
+    photo_elements = driver.find_elements(By.XPATH, ".//a[contains(@href, \"" + photo_href_link + "\")]")
+    for photo_element in photo_elements:
+        photo_url = photo_element.find_element(By.XPATH, './img').get_attribute('src')
+        # No photos
+        if photo_url.find('default_user_avatar') != -1:
+            break
         else:
-            name = full_name
+            profile_photo_url_list.append(photo_url)
 
-    user_passport_stats = user_profile_info.find_elements(By.XPATH, './/div[@class="clearfix"]/ul')[0]
-    friend_count_element = user_passport_stats.find_elements(By.XPATH, '//li[@class="friend-count"]')[0]
-    review_count_element = user_passport_stats.find_elements(By.XPATH, '//li[@class="review-count"]')[0]
-    photo_count_element = user_passport_stats.find_elements(By.XPATH, '//li[@class="photo-count"]')[0]
+    pi_dict['user_photo_url'] = '' if len(profile_photo_url_list) == 0 else ', '.join(profile_photo_url_list)
 
-    friends = int(friend_count_element.find_element(By.XPATH, './strong').text)
-    reviews = int(review_count_element.find_element(By.XPATH, './strong').text)
-    photos = int(photo_count_element.find_element(By.XPATH, './strong').text)
+    ## Profile Info
+    # profile-header-decoration
+    profile_header_element = driver.find_element(By.XPATH, './/div[@data-testid="profile-header-decoration"]')
+    profile_info_elements = profile_header_element.find_elements(By.XPATH, './following-sibling::div[1]/div')
 
-    elites = []
-    badges = user_profile_info.find_elements(By.XPATH, './/div[@class="clearfix u-space-b1"]/a[1]/span')
-    if len(badges) > 0:
-        for badge in badges:
-            if badge.get_attribute("class").find('show-tooltip') != -1:
-                continue
-            year_text = badge.text
-            if year_text.find('Elite') != -1:
-                year = year_text.split(' ')[1]
+    for i, profile_info_element in enumerate(profile_info_elements):
+        # i = 0: Profile Photo
+        if i == 0:
+            continue
+        # i = 1: User Name
+        if i == 1:
+            user_name_element = profile_info_element.find_elements(By.XPATH, './a/h2')
+            if len(user_name_element) > 0:
+                pi_dict['user_name'] = user_name_element[0].text
+        if i == 2:
+            user_loc_element = profile_info_element.find_elements(By.XPATH, './p')
+            if len(user_loc_element) > 0:
+                pi_dict['user_loc'] = user_loc_element[0].text
+        if i == 3:
+            user_stat_elements = profile_info_element.find_elements(By.XPATH, './div/div/div')
+            if len(user_stat_elements) > 0:
+                for i, stat_element in enumerate(user_stat_elements):
+                    value = stat_element.find_element(By.XPATH, './span[2]/span').text
+                    if i == 0:
+                        pi_dict['user_friend_num'] = value
+                    elif i == 1:
+                        pi_dict['user_review_num'] = value
+                    else:
+                        pi_dict['user_photo_num'] = value
+        if i == 4:
+            elite_element = profile_info_element.find_elements(By.XPATH,
+                                                               ".//a[@href=\"/user_details_years_elite?userid=" + userid + "\"]")
+            if len(elite_element) > 0:
+                pi_dict['user_elite_year'] = elite_element[0].find_element(By.XPATH, './span').text.split(' ')[1]
             else:
-                year = "20" + str(int(year_text[1:]))
-            elites.append(year)
-    elites = ', '.join(elites)
+                pi_dict['user_tagline'] = profile_info_element.find_element(By.XPATH, './p').text
 
-    tagline = ""
-    tagline_element = user_profile_info.find_elements(By.XPATH, './p[@class="user-tagline"]')
-    if len(tagline_element) > 0:
-        tagline = tagline_element[0].text[1:-1]
+        if i == 5:
+            user_short_desc_element = profile_info_element.find_elements(By.XPATH, './p')
+            if len(user_short_desc_element) > 0:
+                pi_dict['user_tagline'] = user_short_desc_element[0].text
 
-    about_elements = driver.find_elements(By.XPATH, '//div[@class="user-details-overview_sidebar"]/div')
+    # Impact
+    ## Review reactions
+    rr_dict = {}
+    rr_dict['helpful'] = 0
+    rr_dict['thanks'] = 0
+    rr_dict['love_this'] = 0
+    rr_dict['oh_no'] = 0
+    review_reaction_elements = driver.find_elements(By.XPATH, './/p[text()="Review reactions"]')
+    if len(review_reaction_elements) > 0:
+        helpful_element = review_reaction_elements[0].find_elements(By.XPATH,
+                                                                    '../following-sibling::div/div[1]/div/div[2]/p[2]')
+        if len(helpful_element) > 0:
+            rr_dict['helpful'] = helpful_element[0].text
+        thanks_element = review_reaction_elements[0].find_elements(By.XPATH,
+                                                                   '../following-sibling::div[1]/div[2]/div/div[2]/p[2]')
+        if len(thanks_element) > 0:
+            rr_dict['thanks'] = thanks_element[0].text
+        love_this_element = review_reaction_elements[0].find_elements(By.XPATH,
+                                                                      '../following-sibling::div[1]/div[3]/div/div[2]/p[2]')
+        if len(love_this_element) > 0:
+            rr_dict['love_this'] = love_this_element[0].text
+        oh_no_element = review_reaction_elements[0].find_elements(By.XPATH,
+                                                                  '../following-sibling::div[1]/div[4]/div/div[2]/p[2]')
+        if len(oh_no_element) > 0:
+            rr_dict['oh_no'] = oh_no_element[0].text
 
-    # Rating Distribution
-    star_5 = 0
-    star_4 = 0
-    star_3 = 0
-    star_2 = 0
-    star_1 = 0
+    ## Stats
+    stat_dict = {}
+    stat_dict['review_updates'] = 0
+    stat_dict['first_reviews'] = 0
+    stat_dict['followers'] = 0
+    stat_elements = driver.find_elements(By.XPATH, './/p[text()="Stats"]')
+    if len(stat_elements) > 0:
+        review_updates_element = stat_elements[0].find_elements(By.XPATH,
+                                                                '../following-sibling::div[1]/div[1]/div/div[2]/p[2]')
+        if len(review_updates_element) > 0:
+            stat_dict['review_updates'] = review_updates_element[0].text
+        first_reviews_element = stat_elements[0].find_elements(By.XPATH,
+                                                               '../following-sibling::div[1]/div[2]/div/div[2]/p[2]')
+        if len(first_reviews_element) > 0:
+            stat_dict['first_reviews'] = first_reviews_element[0].text
+        followers_element = stat_elements[0].find_elements(By.XPATH,
+                                                           '../following-sibling::div[1]/div[3]/div/div[2]/p[2]')
+        if len(followers_element) > 0:
+            stat_dict['followers'] = followers_element[0].text
 
-    # Review Votes
-    useful = 0
-    funny = 0
-    cool = 0
+    ## Compliments
+    compliments_dict = {}
+    child_compliments_elements = driver.find_elements(By.XPATH, './/p[text()="Compliments"]')
+    if len(child_compliments_elements) > 0:
+        for id_name in cdt_id_name_list:
+            compliments_dict[id_name] = 0
+            this_compliment_element = driver.find_elements(By.XPATH,
+                                                           ".//div[@data-testid=\"impact-compliment-" + id_name + "\"]")
+            if len(this_compliment_element) > 0:
+                compliments_dict[id_name] = int(this_compliment_element[0].find_element(By.XPATH,
+                                                                                    './div/span[2]/span[2]').text)
 
-    # Stats
-    tips = 0
-    review_updates = 0
-    bookmarks = 0
-    firsts = 0
-    followers = 0
-    lists = 0
+    # Review Distribution
+    ## Ratings
+    rd_dict = {}
+    rd_dict['s5'] = 0
+    rd_dict['s4'] = 0
+    rd_dict['s3'] = 0
+    rd_dict['s2'] = 0
+    rd_dict['s1'] = 0
+    rating_elements = driver.find_elements(By.XPATH, './/p[text()="Ratings"]')
+    if len(rating_elements) > 0:
+        s5_element = rating_elements[0].find_elements(By.XPATH,
+                                                      '../following-sibling::div[1]/div/div[1]/div/div[2]/div')
+        if len(s5_element) > 0:
+            match = re.search(r'\((.*?)\)', s5_element[0].get_attribute('aria-label'))
+            if match:
+                rd_dict['s5'] = int(match.group(1))
 
-    # Compliments
-    thank_you = 0  # compliment
-    cute_pic = 0  # heart
-    good_writer = 0  # pencil
-    hot_stuff = 0  # flame
-    just_a_note = 0  # file
-    like_your_profile = 0  # profile
-    write_more = 0  # write_more
-    you_are_cool = 0  # cool
-    great_photos = 0  # camera
-    great_lists = 0  # list
-    you_are_funny = 0  # funny
+        s4_element = rating_elements[0].find_elements(By.XPATH,
+                                                      '../following-sibling::div[1]/div/div[2]/div/div[2]/div')
+        if len(s4_element) > 0:
+            match = re.search(r'\((.*?)\)', s4_element[0].get_attribute('aria-label'))
+            if match:
+                rd_dict['s4'] = int(match.group(1))
 
-    # etc_info
-    location = ""
-    yelping_since = ""
-    things_i_love = ""
+        s3_element = rating_elements[0].find_elements(By.XPATH,
+                                                      '../following-sibling::div[1]/div/div[3]/div/div[2]/div')
+        if len(s3_element) > 0:
+            match = re.search(r'\((.*?)\)', s3_element[0].get_attribute('aria-label'))
+            if match:
+                rd_dict['s3'] = int(match.group(1))
 
-    find_me_in = ""
-    my_hometown = ""
-    my_blog_or_website = ""
-    when_im_not_yelping = ""
-    why_ysrmr = ""
-    my_second_fw = ""
-    last_great_book = ""
-    my_first_concert = ""
-    my_favorite_movie = ""
-    my_last_meal_on_earth = ""
-    dont_tell_anyone_else_but = ""
-    most_recent_discovery = ""
-    current_crush = ""
+        s2_element = rating_elements[0].find_elements(By.XPATH,
+                                                      '../following-sibling::div[1]/div/div[4]/div/div[2]/div')
+        if len(s2_element) > 0:
+            match = re.search(r'\((.*?)\)', s2_element[0].get_attribute('aria-label'))
+            if match:
+                rd_dict['s2'] = int(match.group(1))
 
-    for ysection in about_elements:
-        h4 = ysection.find_elements(By.XPATH, './h4')
-        if len(h4) > 0:
-            section_name = h4[0].text
-            # Rating Distribution
-            if section_name.find('Rating Distribution') != -1:
-                row_elements = ysection.find_elements(By.XPATH, './table/tbody/tr')
-                for row_element in row_elements:
-                    rating_num = int(row_element.find_elements(By.XPATH, './td/table/tbody/tr/td[2]')[0].text)
-                    if row_element.get_attribute('class').find('1') != -1:
-                        star_5 = rating_num
-                    elif row_element.get_attribute('class').find('2') != -1:
-                        star_4 = rating_num
-                    elif row_element.get_attribute('class').find('3') != -1:
-                        star_3 = rating_num
-                    elif row_element.get_attribute('class').find('4') != -1:
-                        star_2 = rating_num
-                    elif row_element.get_attribute('class').find('5') != -1:
-                        star_1 = rating_num
+        s1_element = rating_elements[0].find_elements(By.XPATH,
+                                                      '../following-sibling::div[1]/div/div[5]/div/div[2]/div')
+        if len(s1_element) > 0:
+            match = re.search(r'\((.*?)\)', s1_element[0].get_attribute('aria-label'))
+            if match:
+                rd_dict['s1'] = int(match.group(1))
 
-            # Review Votes
-            elif section_name.find('Review Votes') != -1:
-                votes_elements = ysection.find_elements(By.XPATH, './ul/li')
-                for votes_element in votes_elements:
-                    votes_text = votes_element.text
-                    votes_num = int(votes_element.find_elements(By.XPATH, './strong')[0].text)
-                    if votes_text.find('Useful') != -1:
-                        useful = votes_num
-                    elif votes_text.find('Funny') != -1:
-                        funny = votes_num
-                    elif votes_text.find('Cool') != -1:
-                        cool = votes_num
+    ## Top categories
+    top5_dict = {}
+    top1_name = ''
+    top1_num = 0
+    top2_name = ''
+    top2_num = 0
+    top3_name = ''
+    top3_num = 0
+    top4_name = ''
+    top4_num = 0
+    top5_name = ''
+    top5_num = 0
+    child_tc_elements = driver.find_elements(By.XPATH, './/p[text()="Top categories"]')
+    if len(child_tc_elements) > 0:
+        tc_elements = child_tc_elements[0].find_elements(By.XPATH, '../following-sibling::ul/li')
+        if len(tc_elements) > 0:
+            for this_c in tc_elements:
+                # Restaurants (66)
+                cat_name_and_num = this_c.find_element(By.XPATH, './p').text
+                name_end_idx = cat_name_and_num.find('(')
+                cat_name = cat_name_and_num[:name_end_idx].strip()
+                cat_num = cat_name_and_num[name_end_idx + 1:-1]
+                top5_dict[cat_name] = cat_num
 
-            # Stats
-            elif section_name.find('Stats') != -1:
-                stats_elements = ysection.find_elements(By.XPATH, './ul/li')
-                for stats_element in stats_elements:
-                    stats_text = stats_element.text
-                    stats_num = int(stats_element.find_elements(By.XPATH, './strong')[0].text)
-                    if stats_text.find('Tips') != -1:
-                        tips = stats_num
-                    elif stats_text.find('Review Updates') != -1:
-                        review_updates = stats_num
-                    elif stats_text.find('Bookmarks') != -1:
-                        bookmarks = stats_num
-                    elif stats_text.find('Firsts') != -1:
-                        firsts = stats_num
-                    elif stats_text.find('Followers') != -1:
-                        followers = stats_num
-                    elif stats_text.find('Lists') != -1:
-                        lists = stats_num
+    for i, (key, value) in enumerate(top5_dict.items()):
+        if i == 0:
+            top1_name = key
+            top1_num = int(value)
+        if i == 1:
+            top2_name = key
+            top2_num = int(value)
+        if i == 2:
+            top3_name = key
+            top3_num = int(value)
+        if i == 3:
+            top4_name = key
+            top4_num = int(value)
+        if i == 4:
+            top5_name = key
+            top5_num = int(value)
 
-            # Compliments
-            elif section_name.find('Compliments') != -1:
-                compliment_elements = ysection.find_elements(By.XPATH, './ul/li')
-                if len(compliment_elements) > 0:
-                    for compliment_element in compliment_elements:
-                        compliment_type = compliment_element.find_elements(By.XPATH, './div[1]/span')[0].get_attribute(
-                            'class')
-                        compliment_num = int(compliment_element.find_elements(By.XPATH, './div[2]/small')[0].text)
-                        if compliment_type.find('icon--18-compliment') != -1:
-                            thank_you = compliment_num
-                        elif compliment_type.find('icon--18-heart') != -1:
-                            cute_pic = compliment_num
-                        elif compliment_type.find('icon--18-pencil') != - 1:
-                            good_writer = compliment_num
-                        elif compliment_type.find('icon--18-flame') != -1:
-                            hot_stuff = compliment_num
-                        elif compliment_type.find('icon--18-file') != -1:
-                            just_a_note = compliment_num
-                        elif compliment_type.find('icon--18-profile') != -1:
-                            like_your_profile = compliment_num
-                        elif compliment_type.find('icon--18-write-more') != -1:
-                            write_more = compliment_num
-                        elif compliment_type.find('icon--18-cool') != -1:
-                            you_are_cool = compliment_num
-                        elif compliment_type.find('icon--18-camera') != -1:
-                            great_photos = compliment_num
-                        elif compliment_type.find('icon--18-list') != -1:
-                            great_lists = compliment_num
-                        elif compliment_type.find('icon--18-funny') != -1:
-                            you_are_funny = compliment_num
+    ## More about me
+    me_dict = {}
+    show_more_text_element = driver.find_elements(By.XPATH, './/p[text()="Show more"]')
+    if len(show_more_text_element) > 0:
+        button = show_more_text_element[0].find_element(By.XPATH, 'ancestor::button[1]')
+        time.sleep(0.1)
+        button.click()
 
-        # Etc..
-        ul_element = ysection.find_elements(By.XPATH, './ul')
-        if len(ul_element) > 0:
-            if ul_element[0].get_attribute('class') == 'ylist':
-                extra_elements = ul_element[0].find_elements(By.XPATH, './li')
-                if len(extra_elements) > 0:
-                    for extra_element in extra_elements:
-                        title = extra_element.find_elements(By.XPATH, './h4')[0].text
-                        content = extra_element.find_elements(By.XPATH, './p')[0].text
-                        if title.find("Location") != -1:
-                            location = content
-                        elif title.find("Yelping Since") != -1:
-                            yelping_since = content
-                        elif title.find("Things I Love") != -1:
-                            things_i_love = content
-                        elif title.find("Find Me In") != -1:
-                            find_me_in = content
-                        elif title.find("My Hometown") != -1:
-                            my_hometown = content
-                        elif title.find("My Blog Or Website") != -1:
-                            my_blog_or_website = content
-                        elif title.find("When I’m Not Yelping...") != -1:
-                            when_im_not_yelping = content
-                        elif title.find("Why You Should Read My Reviews") != -1:
-                            why_ysrmr = content
-                        elif title.find("My Second Favorite Website") != -1:
-                            my_second_fw = content
-                        elif title.find("The Last Great Book I Read") != -1:
-                            last_great_book = content
-                        elif title.find("My First Concert") != -1:
-                            my_first_concert = content
-                        elif title.find("My Favorite Movie") != -1:
-                            my_favorite_movie = content
-                        elif title.find("My Last Meal On Earth") != -1:
-                            my_last_meal_on_earth = content
-                        elif title.find("Don’t Tell Anyone Else But...") != -1:
-                            dont_tell_anyone_else_but = content
-                        elif title.find("Most Recent Discovery") != -1:
-                            most_recent_discovery = content
-                        elif title.find("Current Crush") != -1:
-                            current_crush = content
+    me_title_element = driver.find_elements(By.XPATH, './/h3[text()="More about me"]')
+    if len(me_title_element) > 0:
+        if len(show_more_text_element) > 0:
+            me_info_elements = me_title_element[0].find_elements(By.XPATH, '../following-sibling::div[1]/div/div/div')
+        else:
+            me_info_elements = me_title_element[0].find_elements(By.XPATH, '../following-sibling::div[1]/div')
+        if len(me_info_elements) > 0:
+            for me_info in me_list:
+                me_dict[me_info] = ''
+                this_me_info_element = me_info_elements[0].find_elements(By.XPATH, ".//p[text()=\"" + me_info + "\"]")
+                if len(this_me_info_element) > 0:
+                    me_dict[me_info] = this_me_info_element[0].find_element(By.XPATH, './following-sibling::p').text
 
-    this_profile = [reviewer['user_id'], name, nickname, profile_photo_urls, friends, reviews, photos, elites, tagline,
-                    star_5, star_4, star_3, star_2, star_1, useful, funny, cool, tips, review_updates, bookmarks, firsts,
-                    followers, lists, thank_you, cute_pic, good_writer, hot_stuff, just_a_note, like_your_profile,
-                    write_more, you_are_cool, great_photos, great_lists, you_are_funny, location, yelping_since,
-                    things_i_love, find_me_in, my_hometown, my_blog_or_website, when_im_not_yelping, why_ysrmr,
-                    my_second_fw, last_great_book, my_first_concert, my_favorite_movie, my_last_meal_on_earth,
-                    dont_tell_anyone_else_but, most_recent_discovery, current_crush]
+    location = me_dict['Location']
+    yelping_since = me_dict['Yelping since']
+    things_i_love = me_dict['Things I Love']
+    find_me_in = me_dict['Find Me In']
+    my_hometown = me_dict['My Hometown']
+    my_blog_or_website = me_dict['My Blog Or Website']
+    when_im_not_yelping = me_dict['When I’m Not Yelping...']
+    why_ysrmr = me_dict['Why You Should Read My Reviews']
+    my_second_fw = me_dict['My Second Favorite Website']
+    last_great_book = me_dict['The Last Great Book I Read']
+    my_first_concert = me_dict['My First Concert']
+    my_favorite_movie = me_dict['My Favorite Movie']
+    my_last_meal_on_earth = me_dict['My Last Meal On Earth']
+    dont_tell_anyone_else_but = me_dict['Don’t Tell Anyone Else But...']
+    most_recent_discovery = me_dict['Most Recent Discovery']
+    current_crush = me_dict['Current Crush']
+
+    this_profile = [reviewer['user_id'], pi_dict['user_name'], pi_dict['user_loc'], profile_photo_urls,
+                    pi_dict['user_friend_num'], pi_dict['user_review_num'], pi_dict['user_photo_num'],
+                    pi_dict['user_elite_year'], pi_dict['user_tag_line'],
+                    rd_dict['s5'], rd_dict['s4'], rd_dict['s3'], rd_dict['s2'], rd_dict['s1'],
+                    rr_dict['helpful'], rr_dict['thanks'], rr_dict['love_this'], rr_dict['oh_no'],
+                    stat_dict['review_updates'], stat_dict['first_reviews'], stat_dict['followers'],
+                    top1_name, top1_num, top2_name, top2_num, top3_name, top3_num,
+                    top4_name, top4_num, top5_name, top5_num,
+                    compliments_dict['thankYou'], compliments_dict['cutePic'], compliments_dict['goodWriter'],
+                    compliments_dict['hotStuff'], compliments_dict['justANote'], compliments_dict['ilikeYourProfile'],
+                    compliments_dict['writeMore'], compliments_dict['youAreCool'], compliments_dict['greatPhoto'],
+                    compliments_dict['greatList'], compliments_dict['youAreFunny'],
+                    me_dict['Location'], me_dict['Yelping since'], me_dict['Things I Love'], me_dict['Find Me In'],
+                    me_dict['My Hometown'], me_dict['My Blog Or Website'], me_dict['When I’m Not Yelping...'],
+                    me_dict['Why You Should Read My Reviews'], me_dict['My Second Favorite Website'],
+                    me_dict['The Last Great Book I Read'], me_dict['My First Concert'], me_dict['My Favorite Movie'],
+                    me_dict['My Last Meal On Earth'], me_dict['Don’t Tell Anyone Else But...'],
+                    me_dict['Most Recent Discovery'], me_dict['Current Crush']]
     profiles[index] = this_profile
 
 def review_scraper(driver, index, res, list_of_page=[]):
@@ -994,6 +1016,17 @@ def main(args, obj):
         logger.info('The number of target ' + object_name + 's is ' + str(target_obj_num))
 
     start = timer()
+    required_info_dict = {}
+    if args.collected_object == 'profile':
+        cdt_id_name_list = ['thankYou', 'justANote', 'greatPhoto', 'goodWriter', 'ilikeYourProfile', 'justANote',
+                            'writeMore', 'youAreCool', 'cutePic', 'greatList', 'youAreFunny', 'hotStuff']
+        me_list = ['Location', 'Yelping since', 'Things I Love', 'Find Me In', 'My Hometown', 'My Blog Or Website',
+                   'When I’m Not Yelping...', 'Why You Should Read My Reviews', 'My Second Favorite Website',
+                   'The Last Great Book I Read', 'My First Concert', 'My Favorite Movie', 'My Last Meal On Earth',
+                   'Don’t Tell Anyone Else But...', 'Most Recent Discovery', 'Current Crush']
+        required_info_dict['cdt_id_name'] = cdt_id_name_list
+        required_info_dict['about_me'] = me_list
+
     while(True):
         global success_num, fail_num
         if len(index_set) == 0:
@@ -1006,7 +1039,7 @@ def main(args, obj):
                 elif args.collected_object == 'review':
                     review_scraper(driver, index, object, list_of_page)
                 else:
-                    res_scraper(driver, index, object)
+                    res_scraper(driver, index, object, required_info_dict)
                 success_num += 1
                 index_set.pop(0)
         except:
@@ -1158,9 +1191,5 @@ if __name__ == '__main__':
         if not os.path.exists(args.target_list_name + '.csv'):
             print(args.target_list_name + '.csv cannot be found. The program will be terminated.')
             exit()
-
-    if not os.path.exists('keys_for_scraping.ini'):
-        print('keys_for_scraping.ini cannot be found. The program will be terminated.')
-        exit()
 
     main(args, obj)
