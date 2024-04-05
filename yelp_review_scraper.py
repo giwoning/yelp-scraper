@@ -462,7 +462,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
                         random_sleep_within_page = random.randint(args.wait_time_for_next_page_lb, args.wait_time_for_next_page_ub)
                     time.sleep(random_sleep_within_page)
                     previous_sleep_time_within_page = random_sleep_within_page
-                    navigation_elements = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, './/div[@aria-label="Pagination navigation"]')))
+                    navigation_elements = driver.find_elements(By.XPATH, './/div[@aria-label="Pagination navigation"]')
                     break
                 except TimeoutException:
                     attempts = attempts + 1
