@@ -45,7 +45,6 @@ parser.add_argument('--part_for_ps_mode', default=0, type=int)
 
 # Log Options
 parser.add_argument('--verbose', default=1, type=int)
-parser.add_argument('--save_log', default=1, type=int)
 
 # Dataset Option
 parser.add_argument('--target_list_name', default='User_List', type=str)
@@ -59,6 +58,7 @@ parser.add_argument('--open_chrome', default=0, type=int)
 
 # Save Option
 parser.add_argument('--index_suffix', default=1, type=int)
+parser.add_argument('--save_failed_list', default=0, type=int)
 
 args = parser.parse_args()
 
@@ -67,13 +67,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 formatter = logging.Formatter('[%(asctime)s][%(levelname)s] >> %(message)s')
-
-if args.save_log:
-    if not os.path.exists('logs'):
-        os.makedirs('logs')
-    fileHandler = logging.FileHandler('./logs/yelp_review_result-' + datetime.now().strftime('%Y_%m_%d-%I_%M_%S_%p') + '.txt', mode='w')
-    fileHandler.setFormatter(formatter)
-    logger.addHandler(fileHandler)
 
 streamHandler = logging.StreamHandler()
 streamHandler.setFormatter(formatter)
@@ -912,6 +905,9 @@ def main(args, obj):
     if fail_num > 0:
         msg = ", ".join(map(str, fail_list))
         logger.info('Failed Indexs: ' + msg)
+        bytes_data = msg.encode()
+        fail_list_name = 'failed-index-list-{}.txt'.format(datetime.now().strftime('%Y_%m_%d-%I_%M_%S_%p'))
+        s3.put_object(Bucket=args.bucket_name, Key=fail_list_name, Body=bytes_data)
         if len(invalid_object_list) > 0:
             msg2 = ', '.join(map(str, invalid_object_list))
             logger.info('The following ' + object_name + 's has no information: ' + msg2)
