@@ -1,32 +1,4 @@
-import configparser
-
 import pandas as pd
-
-def load_class_name_and_xpath(_path):
-    names = {}
-    xpaths = {}
-
-    parser = configparser.ConfigParser()
-    parser.read(_path)
-
-    for option in parser.options('Class Names'):
-        names[option] = parser.get('Class Names', option)[1:-1]
-
-    for option in parser.options('XPaths'):
-        xpaths[option] = parser.get('XPaths', option)[1:-1]
-
-    return names, xpaths
-
-def load_aws_keys(_path):
-    aws_info = {}
-
-    parser = configparser.ConfigParser()
-    parser.read(_path)
-
-    for option in parser.options('AWS Keys'):
-        aws_info[option] = parser.get('AWS Keys', option)[1:-1]
-
-    return aws_info['aws_access_key'], aws_info['aws_secret_key'], aws_info['aws_region'], aws_info['aws_bucket_name']
 
 def load_specific_mode_file(_path, page=False):
     ilist = []
