@@ -98,12 +98,40 @@ def profile_scraper(driver, index, reviewer, info_dict):
 
 
     url = 'https://www.yelp.com/user_details?userid=' + reviewer['userid']
-    driver.get(url)
-    if args.additional_wait_time == 0:
-        time.sleep(args.wait_time_for_new_index)
-    else:
-        random_sleep_within_page = random.randint(1, args.additional_wait_time)
-        time.sleep(random_sleep_within_page)
+    max_attempt = 10
+    attempt_num = 0
+    while attempt_num < max_attempt:
+        try:
+            driver.get(url)
+            if args.additional_wait_time == 0:
+                time.sleep(args.wait_time_for_new_index)
+            else:
+                random_sleep_within_page = random.randint(1, args.additional_wait_time)
+                time.sleep(random_sleep_within_page)
+        except TimeoutException:
+            logger.error('Oops.. Timeout! Reconfiguring webdriver...')
+            chrome_options = webdriver.ChromeOptions()
+            driver.set_page_load_timeout(10)
+            if platform.system() != 'Windows' or args.open_chrome == 0:
+                chrome_options.add_argument('--headless')
+                chrome_options.add_argument('--no-sandbox')
+                chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('log-level=3')
+
+            driver = webdriver.Chrome(options=chrome_options)
+            stealth(driver,
+                    languages=["en-US", "en"],
+                    vendor="Google Inc.",
+                    platform="Win32",
+                    webgl_vendor="Intel Inc.",
+                    renderer="Intel Iris OpenGL Engine",
+                    fix_hairline=True,
+                    )
+            logger.info('Done. Attempt #: {}/10'.format(attempt_num))
+    
+    if attempt_num == max_attempt:
+        logger.error('Max attempt has reached. Something goes wrong...')
+        raise
     
     error_404 = len(driver.find_elements(By.XPATH, './/h1[contains(text(), \"We’re sorry. Something went wrong on this page.\")]')) > 0
     if error_404:
@@ -735,6 +763,7 @@ def main(args, obj):
         driver = webdriver.Chrome(options=chrome_options)
     else:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver.set_page_load_timeout(10)
     stealth(driver,
             languages=["en-US", "en"],
             vendor="Google Inc.",
