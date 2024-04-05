@@ -907,10 +907,11 @@ def main(args, obj):
     logger.info('Fail: ' + str(fail_num))
     if fail_num > 0:
         msg = ", ".join(map(str, fail_list))
-        logger.info('Failed Indexs: ' + msg)
-        bytes_data = msg.encode()
-        fail_list_name = 'failed-index-list-{}.txt'.format(datetime.now().strftime('%Y_%m_%d-%I_%M_%S_%p'))
-        s3.put_object(Bucket=args.bucket_name, Key=fail_list_name, Body=bytes_data)
+        if len(fail_list) > 0:
+            logger.info('Failed Indexs: ' + msg)
+            bytes_data = msg.encode()
+            fail_list_name = 'failed-index-list-{}.txt'.format(datetime.now().strftime('%Y_%m_%d-%I_%M_%S_%p'))
+            s3.put_object(Bucket=args.bucket_name, Key=fail_list_name, Body=bytes_data)
         if len(invalid_object_list) > 0:
             msg2 = ', '.join(map(str, invalid_object_list))
             logger.info('The following ' + object_name + 's has no information: ' + msg2)
