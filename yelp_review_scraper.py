@@ -18,6 +18,7 @@ from selenium_stealth import stealth
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
@@ -460,9 +461,26 @@ def review_scraper(driver, index, res, list_of_page=[]):
             time.sleep(random_sleep_within_page)
             previous_sleep_time_within_page = random_sleep_within_page
 
-
-            navigation_elements = WebDriverWait(driver, 30).until(
-                EC.presence_of_element_located((By.XPATH, './/div[@aria-label="Pagination navigation"]')))
+            attempts = 0
+            while (attempts < 10):
+                try:
+                    navigation_elements = WebDriverWait(driver, 30).until(
+                        EC.presence_of_element_located((By.XPATH, './/div[@aria-label="Pagination navigation"]')))
+                except TimeoutException:
+                    attempts = attempts + 1
+                    logger.error('Failed to load the navigation element... Refreshing the page... {}/10'.format(attempts))
+                    driver.refresh()
+                    random_sleep_within_page = random.randint(args.wait_time_for_next_page_lb, args.wait_time_for_next_page_ub)
+                    while random_sleep_within_page == previous_sleep_time_within_page:
+                        random_sleep_within_page = random.randint(args.wait_time_for_next_page_lb,
+                                                                args.wait_time_for_next_page_ub)
+                    time.sleep(random_sleep_within_page)
+                    previous_sleep_time_within_page = random_sleep_within_page
+            
+            if attempts == 10:
+                logger.error('Exceed max attempts... Something happens..')
+                raise
+            
             current_page_num = int(navigation_elements.find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[0])
             this_total_page_num = int(
                 navigation_elements.find_elements(By.XPATH, './div[2]/span')[0].text.split('of')[1])
