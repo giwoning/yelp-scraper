@@ -84,6 +84,10 @@ class DetectedAsRobotError(Exception):
     def __init__(self):
         super().__init__('Yelp has detected me as ROBOT. Cannot work my job any more.')
 
+class DeletedUserError(Exception):
+    def __init__(self):
+        super().__init__('This user page has been deleted.')
+
 def res_scraper(driver, index, res):
     logger.error('In Fixing...')
 
@@ -132,9 +136,8 @@ def profile_scraper(driver, index, reviewer, info_dict):
     
     error_404 = len(driver.find_elements(By.XPATH, './/h1[contains(text(), \"We’re sorry. Something went wrong on this page.\")]')) > 0
     if error_404:
-        logger.error('This user page has been removed.')
         invalid_object_list.append(index)
-        raise
+        raise DeletedUserError
 
     cdt_id_name_list = info_dict['cdt_id_name']
     me_list = info_dict['about_me']
