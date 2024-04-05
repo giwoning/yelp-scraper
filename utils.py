@@ -31,17 +31,16 @@ def load_aws_keys(_path):
 def load_specific_mode_file(_path, page=False):
     iset = set()
     with open(_path, 'r') as f:
-        for line in f:
-            line = line.strip().split(',')
-            if '' in line:
-                line.remove('')
-            if page:
-                iset.update([index.strip() for index in line])
-            else:
+        if page:
+            for line in f:
+                return line.strip().split(', ')
+        else:
+            for line in f:
+                line = line.strip().split(',')
+                if '' in line:
+                    line.remove('')
                 iset.update([int(index) for index in line])
-    if page:
-        return list(iset)
-    return iset
+                return iset
 
 def check_index_list(ilist, max_index):
     pass_ = True
