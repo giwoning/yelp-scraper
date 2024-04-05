@@ -960,10 +960,6 @@ if __name__ == '__main__':
         parser_error = True
         parser.error('Wait time for new index cannot be negative.')
 
-    if args.wait_time_for_establishment < 0:
-        parser_error = True
-        parser.error('Wait time for establishment cannot be negative.')
-
     if args.wait_time_for_next_page_lb < 0 or args.wait_time_for_next_page_ub < 0:
         parser_error = True
         parser.error('Wait time for next page cannot be negative.')
