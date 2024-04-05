@@ -69,6 +69,8 @@ logger.setLevel(logging.INFO)
 formatter = logging.Formatter('[%(asctime)s][%(levelname)s] >> %(message)s')
 
 if args.save_log:
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
     fileHandler = logging.FileHandler('./logs/yelp_review_result-' + datetime.now().strftime('%Y_%m_%d-%I_%M_%S_%p') + '.txt', mode='w')
     fileHandler.setFormatter(formatter)
     logger.addHandler(fileHandler)
