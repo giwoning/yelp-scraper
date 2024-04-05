@@ -442,7 +442,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
         page = page + 1
         retried = False
         if page == 1:
-            if args.page_specific_mode == 1:
+            if args.page_specific_mode == 1 and args.part_for_ps_mode > 1:
                 logger.info(
                     'Current Index: {}, Page: 1 / {}, Acutal Page: {}'.format(str(index), str(loaded_page_num), start_page))
             else:
