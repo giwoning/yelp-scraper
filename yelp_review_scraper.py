@@ -466,6 +466,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
                 try:
                     navigation_elements = WebDriverWait(driver, 30).until(
                         EC.presence_of_element_located((By.XPATH, './/div[@aria-label="Pagination navigation"]')))
+                    break
                 except TimeoutException:
                     attempts = attempts + 1
                     logger.error('Failed to load the navigation element... Refreshing the page... {}/10'.format(attempts))
