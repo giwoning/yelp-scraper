@@ -44,8 +44,8 @@ parser.add_argument('--index_for_ps_mode', default=-1, type=int)
 parser.add_argument('--part_for_ps_mode', default=0, type=int)
 
 # Log Options
-parser.add_argument('--verbose', default=True, type=bool)
-parser.add_argument('--save_log', default=False, type=bool)
+parser.add_argument('--verbose', default=1, type=int)
+parser.add_argument('--save_log', default=1, type=int)
 
 # Dataset Option
 parser.add_argument('--target_list_name', default='User_List', type=str)
@@ -95,7 +95,7 @@ def res_scraper(driver, index, res):
 
 def profile_scraper(driver, index, reviewer, info_dict):
     logger.info('Current working index: {}, User ID: {}'.format(str(index), reviewer['userid']))
-
+    reset_configuration = False
 
     url = 'https://www.yelp.com/user_details?userid=' + reviewer['userid']
     max_attempt = 10
@@ -128,8 +128,10 @@ def profile_scraper(driver, index, reviewer, info_dict):
                     renderer="Intel Iris OpenGL Engine",
                     fix_hairline=True,
                     )
+            attempt_num = attempt_num + 1
             logger.info('Done. Attempt #: {}/10'.format(attempt_num))
-    
+            reset_configuration = True
+
     if attempt_num == max_attempt:
         logger.error('Max attempt has reached. Something goes wrong...')
         raise
@@ -325,7 +327,6 @@ def profile_scraper(driver, index, reviewer, info_dict):
         tc_elements = child_tc_elements[0].find_elements(By.XPATH, '../following-sibling::ul/li')
         if len(tc_elements) > 0:
             for this_c in tc_elements:
-                # Restaurants (66)
                 cat_name_and_num = this_c.find_element(By.XPATH, './p').text
                 name_end_idx = cat_name_and_num.find('(')
                 cat_name = cat_name_and_num[:name_end_idx].strip()
@@ -407,6 +408,7 @@ def profile_scraper(driver, index, reviewer, info_dict):
                     me_dict['My Last Meal On Earth'], me_dict['Don’t Tell Anyone Else But...'],
                     me_dict['Most Recent Discovery'], me_dict['Current Crush']]
     profiles[index] = this_profile
+    return reset_configuration
 
 def review_scraper(driver, index, res, list_of_page=[]):
     previous_sleep_time = -1
@@ -865,7 +867,25 @@ def main(args, obj):
         try:
             for index, object in yelp_target_df.iterrows():
                 if args.collected_object == 'profile':
-                    profile_scraper(driver, index, object, required_info_dict)
+                    reset_configuration = profile_scraper(driver, index, object, required_info_dict)
+                    if reset_configuration:
+                        chrome_options = webdriver.ChromeOptions()
+                        driver.set_page_load_timeout(10)
+                        if platform.system() != 'Windows' or args.open_chrome == 0:
+                            chrome_options.add_argument('--headless')
+                            chrome_options.add_argument('--no-sandbox')
+                            chrome_options.add_argument('--disable-dev-shm-usage')
+                        chrome_options.add_argument('log-level=3')
+
+                        driver = webdriver.Chrome(options=chrome_options)
+                        stealth(driver,
+                                languages=["en-US", "en"],
+                                vendor="Google Inc.",
+                                platform="Win32",
+                                webgl_vendor="Intel Inc.",
+                                renderer="Intel Iris OpenGL Engine",
+                                fix_hairline=True,
+                                )
                 elif args.collected_object == 'review':
                     review_scraper(driver, index, object, list_of_page)
                 else:
@@ -898,7 +918,6 @@ def main(args, obj):
 
     if success_num == 0:
         logger.info('Nothing to save because NO DATA HAVE BEEN COLLECTED :(')
-        logger.info('Please check class names and xpaths in keys_for_scraping.ini file. They may be not valid.')
 
     else:
         logger.info('Saving the result...')
@@ -965,12 +984,12 @@ if __name__ == '__main__':
     parser_error = False
     # args check
     if args.index_specified_mode:
-        if not os.path.exists('index_set.txt'):
-            print('index_set.txt cannot be found. The program will be terminated.')
+        if not os.path.exists('index_list.txt'):
+            logger.error('index_list.txt cannot be found.')
             exit()
 
-        if len(utils.load_specific_mode_filet('index_set.txt')) == 0:
-            print('index_set.txt is empty or invalid. The program will be terminated.')
+        if len(utils.load_specific_mode_file('index_list.txt')) == 0:
+            logger.error('index_list.txt is empty or invalid.')
             exit()
 
     else:
@@ -995,7 +1014,7 @@ if __name__ == '__main__':
         parser.error('Wait time for next page cannot be negative.')
 
     if parser_error:
-        print('Some arguments you entered are not valid. The program will be terminated.')
+        logger.error('Some arguments you entered are not valid.')
         exit()
 
     # file existence check
