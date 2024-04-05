@@ -34,7 +34,7 @@ parser.add_argument('--collected_object', choices=['restaurant', 'review', 'prof
 # Scraper Options
 parser.add_argument('--min_index', default=0, type=int)
 parser.add_argument('--max_index', default=-1, type=int)
-parser.add_argument('--wait_time_for_new_index', default=10, type=int)
+parser.add_argument('--wait_time_for_new_index', default=8, type=int)
 parser.add_argument('--wait_time_for_establishment', default=10, type=int)
 parser.add_argument('--wait_time_for_next_page_lb', default=10, type=int)
 parser.add_argument('--wait_time_for_next_page_ub', default=15, type=int)
@@ -99,7 +99,9 @@ def profile_scraper(driver, index, reviewer, info_dict):
 
     url = 'https://www.yelp.com/user_details?userid=' + reviewer['user_id']
     driver.get(url)
-    time.sleep(args.wait_time_for_new_index)
+    random_sleep_within_page = random.randint(3, args.wait_time_for_new_index)
+    time.sleep(random_sleep_within_page)
+    
     error_404 = len(driver.find_elements(By.XPATH, './/h1[contains(text(), \"We’re sorry. Something went wrong on this page.\")]')) > 0
     if error_404:
         logger.error('This user page has been removed.')
