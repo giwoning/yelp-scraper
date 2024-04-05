@@ -456,10 +456,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
             attempts = 0
             while (attempts < 10):
                 try:
-                    if attempts == 0:
-                        driver.get(yelp_url + current_page)
-                    else:
-                        driver.refresh()
+                    driver.get(yelp_url + current_page)
                     random_sleep_within_page = random.randint(args.wait_time_for_next_page_lb, args.wait_time_for_next_page_ub)
                     while random_sleep_within_page == previous_sleep_time_within_page:
                         random_sleep_within_page = random.randint(args.wait_time_for_next_page_lb, args.wait_time_for_next_page_ub)
