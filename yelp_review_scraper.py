@@ -444,7 +444,7 @@ def review_scraper(driver, index, res, list_of_page=[]):
         if page == 1:
             if args.page_specific_mode == 1:
                 logger.info(
-                    'Current Index: {}, Page: 1 / {}, Acutal Page: Home'.format(str(index), str(loaded_page_num), start_page))
+                    'Current Index: {}, Page: 1 / {}, Acutal Page: {}'.format(str(index), str(loaded_page_num), start_page))
             else:
                 logger.info('Current Index: {}, Page: 1 / {}, Acutal Page: Home'.format(str(index), str(loaded_page_num)))
         else:
@@ -774,9 +774,8 @@ def main(args, obj):
 
         unit = len(total_list_of_page) / 10
         start_idx = int((args.part_for_ps_mode - 1) * (unit)) + (args.part_for_ps_mode > 1)
-        end_idx = int(args.part_for_ps_mode * unit) if args.part_for_ps_mode != 10 else len(total_list_of_page)
+        end_idx = int(args.part_for_ps_mode * unit) if args.part_for_ps_mode != 10 else len(total_list_of_page) - 1
         list_of_page = total_list_of_page[start_idx:end_idx + 1]
-        print(list_of_page)
         logger.info('Page specific mode is successfully activated.')
         logger.info('Target index: {}, Start page index: {}, End page index: {}'.format(args.index_for_ps_mode, start_idx, end_idx))
 
