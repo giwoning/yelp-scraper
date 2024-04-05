@@ -748,7 +748,7 @@ def main(args, obj):
 
     object_name = ""
     if args.collected_object == 'profile':
-        if not 'user_id' in yelp_target_df.columns:
+        if (not 'user_id' in yelp_target_df.columns) and (not 'userid' in yelp_target_df.columns):
             logger.error('Cannot find user_id column in your list file. The program will be terminated.')
             exit()
         object_name = "user"
