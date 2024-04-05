@@ -94,10 +94,10 @@ def res_scraper(driver, index, res):
     logger.error('In Fixing...')
 
 def profile_scraper(driver, index, reviewer, info_dict):
-    logger.info('Current working index: {}, User ID: {}'.format(str(index), reviewer['user_id']))
+    logger.info('Current working index: {}, User ID: {}'.format(str(index), reviewer['userid']))
 
 
-    url = 'https://www.yelp.com/user_details?userid=' + reviewer['user_id']
+    url = 'https://www.yelp.com/user_details?userid=' + reviewer['userid']
     driver.get(url)
     random_sleep_within_page = random.randint(3, args.wait_time_for_new_index)
     time.sleep(random_sleep_within_page)
@@ -164,7 +164,7 @@ def profile_scraper(driver, index, reviewer, info_dict):
                 pi_dict['user_photo_num'] = int(user_photo_element[0].find_element(By.XPATH, './span[2]/span').text)
 
     elite_element = profile_header_element.find_elements(By.XPATH,
-                                                       ".//a[@href=\"/user_details_years_elite?userid=" + reviewer['user_id'] + "\"]")
+                                                       ".//a[@href=\"/user_details_years_elite?userid=" + reviewer['userid'] + "\"]")
     if len(elite_element) > 0:
         pi_dict['user_elite_year'] = int(elite_element[0].find_element(By.XPATH, './span').text.split(' ')[1])
 
@@ -356,7 +356,7 @@ def profile_scraper(driver, index, reviewer, info_dict):
     most_recent_discovery = me_dict['Most Recent Discovery']
     current_crush = me_dict['Current Crush']
 
-    this_profile = [reviewer['user_id'], pi_dict['user_name'], pi_dict['user_loc'], pi_dict['user_photo_url'],
+    this_profile = [reviewer['userid'], pi_dict['user_name'], pi_dict['user_loc'], pi_dict['user_photo_url'],
                     pi_dict['user_friend_num'], pi_dict['user_review_num'], pi_dict['user_photo_num'],
                     pi_dict['user_elite_year'], pi_dict['user_tagline'],
                     rd_dict['s5'], rd_dict['s4'], rd_dict['s3'], rd_dict['s2'], rd_dict['s1'],
