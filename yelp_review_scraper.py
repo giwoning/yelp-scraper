@@ -108,6 +108,7 @@ def profile_scraper(driver, index, reviewer, info_dict):
             else:
                 random_sleep_within_page = random.randint(1, args.additional_wait_time)
                 time.sleep(random_sleep_within_page)
+            break
         except TimeoutException:
             logger.error('Oops.. Timeout! Reconfiguring webdriver...')
             chrome_options = webdriver.ChromeOptions()
