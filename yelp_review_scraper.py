@@ -458,6 +458,8 @@ def review_scraper(driver, index, res, list_of_page=[]):
                 try:
                     if attempts == 0:
                         driver.get(yelp_url + current_page)
+                    else:
+                        driver.refresh()
                     random_sleep_within_page = random.randint(args.wait_time_for_next_page_lb, args.wait_time_for_next_page_ub)
                     while random_sleep_within_page == previous_sleep_time_within_page:
                         random_sleep_within_page = random.randint(args.wait_time_for_next_page_lb, args.wait_time_for_next_page_ub)
@@ -468,7 +470,6 @@ def review_scraper(driver, index, res, list_of_page=[]):
                 except TimeoutException:
                     attempts = attempts + 1
                     logger.error('Failed to load the page... Refreshing... {}/10'.format(attempts))
-                    driver.refresh()
             
             if attempts == 10:
                 logger.error('Exceed max attempts... Something happens..')
