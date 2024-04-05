@@ -914,7 +914,10 @@ def main(args, obj):
             s3.put_object(Bucket=args.bucket_name, Key=fail_list_name, Body=bytes_data)
         if len(invalid_object_list) > 0:
             msg2 = ', '.join(map(str, invalid_object_list))
-            logger.info('The following ' + object_name + 's has no information: ' + msg2)
+            bytes_data = msg2.encode()
+            deleted_list_name = 'deleted-index-list-{}.txt'.format(datetime.now().strftime('%Y_%m_%d-%I_%M_%S_%p'))
+            s3.put_object(Bucket=args.bucket_name, Key=deleted_list_name, Body=bytes_data)
+            logger.info('The following ' + object_name + ' profiles has been removed: ' + msg2)
     logger.info('-----------------')
 
     if success_num == 0:
