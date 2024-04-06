@@ -10,7 +10,7 @@ def load_specific_mode_file(_path, page=False):
             for line in f:
                 line = line.strip().split(', ')
                 ilist.extend([int(index) for index in line])
-                return ilist
+            return ilist
 
 def check_index_list(ilist, max_index):
     pass_ = True

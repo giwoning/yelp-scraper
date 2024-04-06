@@ -797,14 +797,14 @@ def main(args, obj):
 
 
     if args.index_specified_mode:
-        index_set = sorted(utils.load_specific_mode_file('index_set.txt'))
+        index_list = sorted(utils.load_specific_mode_file('index_list.txt'))
         list_of_page = []
-        if not utils.check_index_list(index_set, len(yelp_target_df) - 1):
-            logger.error('Check your index_set.txt. It may contains invalid indices. The program will be terminated.')
+        if not utils.check_index_list(index_list, len(yelp_target_df) - 1):
+            logger.error('Check your index_list.txt. It may contains invalid indices. The program will be terminated.')
             exit()
 
     elif args.page_specific_mode:
-        index_set = [args.index_for_ps_mode]
+        index_list = [args.index_for_ps_mode]
         total_list_of_page = utils.load_specific_mode_file(str(args.index_for_ps_mode) + '_page_list.txt', True)
 
         if not utils.check_page_list(total_list_of_page):
@@ -836,15 +836,15 @@ def main(args, obj):
                 max_index = len(yelp_target_df) - 1
             else:
                 max_index = args.max_index
-        index_set = list(range(args.min_index, max_index + 1, 1))
+        index_list = list(range(args.min_index, max_index + 1, 1))
         list_of_page = []
 
     if args.verbose:
         logger.info('The target list file has been successfully loaded.')
         logger.info('The total number of ' + object_name + 's is ' + str(len(yelp_target_df)) + '.')
 
-    target_obj_num = len(index_set)
-    yelp_target_df = yelp_target_df.loc[index_set]
+    target_obj_num = len(index_list)
+    yelp_target_df = yelp_target_df.loc[index_list]
     if args.verbose:
         logger.info('The number of target ' + object_name + 's is ' + str(target_obj_num))
 
@@ -862,7 +862,7 @@ def main(args, obj):
 
     while(True):
         global success_num, fail_num
-        if len(index_set) == 0:
+        if len(index_list) == 0:
             break
 
         try:
@@ -892,17 +892,17 @@ def main(args, obj):
                 else:
                     res_scraper(driver, index, object)
                 success_num += 1
-                index_set.pop(0)
+                index_list.pop(0)
         except:
             fail_num += 1
-            error_index = index_set.pop(0)
+            error_index = index_list.pop(0)
             if not error_index in invalid_object_list:
                 fail_list.append(error_index)
             logger.error(sys.exc_info()[0])
             logger.error(traceback.format_exc())
             logger.error('Index ' + str(error_index) +': Error occured. This ' + object_name + ' gets skipped.')
-            if len(index_set) > 0:
-                yelp_target_df = yelp_target_df.loc[index_set]
+            if len(index_list) > 0:
+                yelp_target_df = yelp_target_df.loc[index_list]
 
     logger.info('-----------------')
     logger.info('Report')
