@@ -325,9 +325,13 @@ def profile_scraper(driver, index, reviewer, info_dict):
         if len(tc_elements) > 0:
             for this_c in tc_elements:
                 cat_name_and_num = this_c.find_element(By.XPATH, './p').text
-                name_end_idx = cat_name_and_num.find('(')
-                cat_name = cat_name_and_num[:name_end_idx].strip()
-                cat_num = cat_name_and_num[name_end_idx + 1:-1]
+                match = re.search(r'\((\d+)\)$', cat_name_and_num)
+                if match:
+                    cat_num = match.group(1)
+                    cat_name = re.sub(r'\s*\(\d+\)$', '', cat_name_and_num)
+                else:
+                    cat_num = ''
+                    cat_name = 'Unknown'
                 top5_dict[cat_name] = cat_num
 
     for i, (key, value) in enumerate(top5_dict.items()):
